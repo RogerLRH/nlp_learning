@@ -69,7 +69,7 @@ class BaseModel(object):
             loss += l2_losses
         return loss
 
-    def loss_multi(self, l2_lambda=0.00001):
+    def loss_multi(self, l2_lambda=0.0001):
         with tf.name_scope("loss"):
             losses = tf.nn.sigmoid_cross_entropy_with_logits(
             labels=self.label, logits=self.logits)

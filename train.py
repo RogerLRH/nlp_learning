@@ -15,7 +15,8 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('--num_class', action='store', required=True, type=int, type=int, help='number of labels')
 parser.add_argument('--train_file', action='store', required=True, type=str, help='path of train data')
 parser.add_argument('--ckpt_folder', action='store', default="checkpoints", type=str, help='path of checkpoint folder')
-parser.add_argument('--checkpoint', action='store', default=None, type=str, help='checkpoint to load, None by default')
+parser.add_argument('--train_cp', action='store', default=None, type=str, help='checkpoint to load for train, None by default')
+parser.add_argument('--test_cp', action='store', required=True, type=str, help='checkpoint to load for test')
 parser.add_argument('--epochs', action='store', default=5, type=int, help='epochs to circulate train data, 5 by default')
 parser.add_argument('--hidden_size', action='store', default=100, type=int, help='LSTM hidden size, 100 by default')
 parser.add_argument('--embed_size', action='store', default=100, type=int, help='embedding size, 100 by default')
@@ -53,7 +54,8 @@ def run():
     clip_gradient = args.clip_gradient
     multi_label = args.multi_label
     epochs = args.epochs
-    checkpoint = args.checkpoint
+    train_cp = args.train_cp
+    test_cp = args.test_cp
     ckpt_folder = args.ckpt_folder
     initializer = tf.random_normal_initializer(stddev=0.1)
 
@@ -62,20 +64,16 @@ def run():
     train_y = labels[:train_num]
     veri_x = inputs[train_num:]
     veri_y = labels[train_num:]
-    test_x = veri_x[:4096]
-    test_y = veri_y[:4096]
+    test_x = veri_x[:1024]
+    test_y = veri_y[:1024]
 
-    # clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
+    clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
     # clf = TextRNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
-    clf = TextRCNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, initializer, multi_label, clip_gradient)
-    clf.train(train_x, train_y, test_x, test_y, epochs=epochs, checkpoint=checkpoint, save_path=ckpt_folder)
-    _, probs = clf.test(veri_x, veri_y, checkpoint)
+    # clf = TextRCNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, initializer, multi_label, clip_gradient)
+    clf.train(train_x, train_y, test_x, test_y, epochs=epochs, checkpoint=train_cp, save_path=ckpt_folder)
+    _, probs = clf.test(veri_x, veri_y, test_cp)
     loss = calcul_loss(veri_y, probs)
     print(loss)
 
 if __name__ == "__main__":
     run()
-
-# 0.337687411065 0.0005 4
-# 0.336436919699 0.0005 5
-# 0.317612038775 0.0005 5 1,2,3
