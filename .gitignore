@@ -1,0 +1,6 @@
+*.pyc
+best_model
+checkpoints
+*.txt
+*.csv
+.git
