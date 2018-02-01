@@ -6,14 +6,14 @@ import numpy as np
 
 
 class BaseModel(object):
-    def __init__(self, input_len, num_class, learning_rate=1e-3, no_decay_step=1000, decay_rate=0.8, batch_size=128, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
+    def __init__(self, input_len, num_class, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
         tf.reset_default_graph()
 
         # set hyperparamter
         self.input_len = input_len
         self.num_class = 1 if num_class == 2 else num_class
         self.learning_rate = learning_rate
-        self.no_decay_step = no_decay_step
+        self.decay_step = decay_step
         self.decay_rate = decay_rate
         self.batch_size = batch_size
         self.pos_weight = pos_weight
@@ -97,7 +97,7 @@ class BaseModel(object):
 
     def optimize(self):
         """based on the loss, use SGD to update parameter"""
-        learning_rate = tf.train.exponential_decay(self.learning_rate, self.global_step, self.no_decay_step, self.decay_rate, staircase=True)
+        learning_rate = tf.train.exponential_decay(self.learning_rate, self.global_step, self.decay_step, self.decay_rate, staircase=True)
         op = tf.contrib.layers.optimize_loss(self.loss, global_step=self.global_step, learning_rate=learning_rate, optimizer="Adam", clip_gradients=self.clip_gradient)
         return op
 

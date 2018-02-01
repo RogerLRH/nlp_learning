@@ -23,7 +23,7 @@ parser.add_argument('--embed_size', action='store', default=100, type=int, help=
 parser.add_argument('--filter_sizes', action='store', default="1,2,3,4,5", type=str, help='sizes of filters, "1,2,3,4,5" by default')
 parser.add_argument('--num_filter', action='store', default=256, type=int, help='number of filters for each size, 256 by default')
 parser.add_argument('--learning_rate', action='store', default=0.001, type=float, help='learning rate, 0.001 by default')
-parser.add_argument('--no_decay_step', action='store', default=1000, type=int, help='number of steps before decaying learning rate, 1000 by default')
+parser.add_argument('--decay_step', action='store', default=1000, type=int, help='number of steps to make once decay rate, 1000 by default')
 parser.add_argument('--decay_rate', action='store', default=0.8, type=float, help='decay rate for learning rate, 0.8 by default')
 parser.add_argument('--batch_size', action='store', default=128, type=int, help='batch size, 128 by default')
 parser.add_argument('--pos_weight', action='store', default=1.0, type=float, help='weight of positive sample in sigmoid cross entropy, 1.0 by default')
@@ -47,7 +47,7 @@ def run():
     filter_sizes = [int(s) for s in args.filter_sizes.strip().split(",")]
     num_filter = args.num_filter
     learning_rate = args.learning_rate
-    no_decay_step = args.no_decay_step
+    decay_step = args.decay_step
     decay_rate = args.decay_rate
     batch_size = args.batch_size
     pos_weight = args.pos_weight
@@ -67,9 +67,9 @@ def run():
     test_x = veri_x[:1024]
     test_y = veri_y[:1024]
 
-    clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
-    # clf = TextRNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
-    # clf = TextRCNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, no_decay_step, decay_rate, batch_size, pos_weight, initializer, multi_label, clip_gradient)
+    # clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
+    # clf = TextRNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
+    clf = TextRCNN(voca_size, input_len, num_class, hidden_size, embed_size, num_filter, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
     clf.train(train_x, train_y, test_x, test_y, epochs=epochs, checkpoint=train_cp, save_path=ckpt_folder)
     _, probs = clf.test(veri_x, veri_y, test_cp)
     loss = calcul_loss(veri_y, probs)

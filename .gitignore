@@ -4,3 +4,4 @@ checkpoints
 *.txt
 *.csv
 .git
+.DS_Store
