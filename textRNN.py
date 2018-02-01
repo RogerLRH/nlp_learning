@@ -43,3 +43,44 @@ class TextRNN(BaseModel):
         with tf.name_scope("full"):
             logits = tf.matmul(self.output_rnn_last, self.W_project) + self.b_project  # [None, num_class]
         return logits
+
+
+class TextRNNAttention(TextRNN):
+    def init_weights(self):
+        # define all weights here
+        with tf.name_scope("embed"):
+            self.embedding = tf.get_variable("embedding", shape=[self.voca_size, self.embed_size], initializer=self.initializer)
+
+        with tf.name_scope("attention"):
+            self.W_attention = tf.get_variable("W_attention", shape=[self.hidden_size*2, self.hidden_size*2], initializer=self.initializer)
+            self.b_atteniton = tf.get_variable("b_atteniton", shape=[self.hidden_size*2])
+            self.U_attention = tf.get_variable("attention", shape=[self.hidden_size*2, 1], initializer=self.initializer)
+
+        with tf.name_scope("full"):
+            self.W_project = tf.get_variable("W_project", shape=[self.hidden_size*2, self.num_class], initializer=self.initializer)
+            self.b_project = tf.get_variable("b_project", shape=[self.num_class])
+
+    def core(self):
+        # embedding
+        self.embedded_sentence = tf.nn.embedding_lookup(self.embedding, self.input) # [None, input_len, embed_size]
+
+        # Bi-lstm
+        lstm_fw_cell = rnn.GRUCell(self.hidden_size) #forward direction
+        lstm_bw_cell = rnn.GRUCell(self.hidden_size) #backward direction
+        if self.dropout_keep_prob is not None:
+            lstm_fw_cell = rnn.DropoutWrapper(lstm_fw_cell, output_keep_prob=self.dropout_keep_prob)
+            lstm_bw_cell = rnn.DropoutWrapper(lstm_bw_cell, output_keep_prob=self.dropout_keep_prob)
+        outputs, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, self.embedded_sentence, dtype=tf.float32) # tuple(2*[None, input_len, hidden_size])
+        self.h_rnn = tf.concat(outputs, axis=2) # [None, input_len, hidden_size*2]
+
+        # attention
+        input_attention = tf.reshape(self.h_rnn, [-1, self.hidden_size*2])
+        hidden_rep = tf.nn.tanh(tf.matmul(input_attention, self.W_attention) + self.b_atteniton)
+        attention_logits = tf.reshape(tf.matmul(hidden_rep, self.U_attention), [-1, self.input_len])
+        attention_weight = tf.expand_dims(tf.nn.softmax(attention_logits), axis=2)
+        self.output_attention = tf.reduce_sum(tf.multiply(self.h_rnn, attention_weight), axis=1)
+
+        # FC
+        with tf.name_scope("full"):
+            logits = tf.matmul(self.output_attention, self.W_project) + self.b_project  # [None, num_class]
+        return logits

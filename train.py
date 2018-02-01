@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 
 from textCNN import TextCNN
-from textRNN import TextRNN
+from textRNN import TextRNN, TextRNNAttention
 from textRCNN import TextRCNN
 from data_treater import read_numbered
 
@@ -69,7 +69,8 @@ def run():
 
     # clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
     # clf = TextRNN(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
-    clf = TextRCNN(voca_size, input_len, num_class, hidden_size, embed_size, num_filter, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
+    clf = TextRNNAttention(voca_size, input_len, hidden_size, num_class, embed_size, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
+    # clf = TextRCNN(voca_size, input_len, num_class, hidden_size, embed_size, num_filter, learning_rate, decay_step, decay_rate, batch_size, pos_weight, clip_gradient, initializer, multi_label)
     clf.train(train_x, train_y, test_x, test_y, epochs=epochs, checkpoint=train_cp, save_path=ckpt_folder)
     _, probs = clf.test(veri_x, veri_y, test_cp)
     loss = calcul_loss(veri_y, probs)
