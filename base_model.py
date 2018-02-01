@@ -108,6 +108,10 @@ class BaseModel(object):
             else:
                 sess.run(tf.global_variables_initializer())
             for i in range(epochs):
+                sf = np.array(range(len(inputs)))
+                np.random.shuffle(sf)
+                inputs = inputs[sf]
+                labels = labels[sf]
                 for j in range((len(inputs) - 1) // self.batch_size + 1):
                     train_x = inputs[j*self.batch_size:(j+1)*self.batch_size]
                     train_y = labels[j*self.batch_size:(j+1)*self.batch_size]
