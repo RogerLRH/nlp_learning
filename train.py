@@ -46,6 +46,12 @@ def calcul_accuracy(y, o):
     return np.mean(t == y)
 
 
+def random_remove(x):
+    m, n = len(x[0]), len(x)
+    rd = np.random.randint(m, size=n)
+    x[:, rd] = 0
+
+
 def run():
     inputs, labels, voca_size = read_numbered(args.train_file)
     input_len = len(inputs[0])
@@ -76,6 +82,7 @@ def run():
     test_x = veri_x[:1024]
     test_y = veri_y[:1024]
 
+    random_remove(train_x)
     # clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, decay_step, decay_rate, batch_size, l2_lambda, pos_weight, clip_gradient, initializer, multi_label)
     # clf = TextRNN(voca_size, input_len, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_lambda, pos_weight, clip_gradient, initializer, multi_label)
     clf = TextRNNAttention(voca_size, input_len, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_lambda, pos_weight, clip_gradient, initializer, multi_label)

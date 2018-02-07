@@ -54,8 +54,7 @@ class BaseModel(object):
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
 
     def embed(self):
-        lookup = tf.nn.embedding_lookup(self.embedding, self.input) # [None, input_len, embed_size]
-        self.embedded_sentence = tf.nn.dropout(lookup, keep_prob=0.99)
+        self.embedded_sentence = tf.nn.embedding_lookup(self.embedding, self.input) # [None, input_len, embed_size]
 
     def init_weights(self):
         # define all weights here
