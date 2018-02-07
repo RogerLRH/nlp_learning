@@ -6,14 +6,12 @@ from base_model import BaseModel
 
 
 class TextRCNN(BaseModel):
-    def __init__(self, voca_size, input_len, num_class, hidden_size=100, embed_size=100, num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
-        self.voca_size = voca_size
+    def __init__(self, voca_size, input_len, num_class, hidden_size=100, embed_size=100, num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, l2_lambda =0.0001, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
         self.hidden_size = hidden_size
-        self.embed_size = embed_size
         self.conv_size = hidden_size * 2 + embed_size
         self.num_filter = num_filter
 
-        super(TextRCNN, self).__init__(input_len=input_len, num_class=num_class, learning_rate=learning_rate, decay_step=decay_step, decay_rate=decay_rate, batch_size=batch_size, pos_weight=pos_weight, clip_gradient=clip_gradient, initializer=initializer, multi_label=multi_label)
+        super(TextRCNN, self).__init__(voca_size=voca_size, input_len=input_len, num_class=num_class, embed_size=embed_size, learning_rate=learning_rate, decay_step=decay_step, decay_rate=decay_rate, batch_size=batch_size, pos_weight=pos_weight, clip_gradient=clip_gradient, initializer=initializer, multi_label=multi_label)
 
     def init_weights(self):
         # define all weights here
@@ -29,9 +27,6 @@ class TextRCNN(BaseModel):
             self.b_project = tf.get_variable("b_project", shape=[self.num_class])
 
     def core(self):
-        # embedding
-        self.embedded_sentence = tf.nn.embedding_lookup(self.embedding, self.input) # [None, input_len, embed_size]
-
         # Bi-lstm
         lstm_fw_cell = rnn.GRUCell(self.hidden_size) #forward direction
         lstm_bw_cell = rnn.GRUCell(self.hidden_size) #backward direction
@@ -50,7 +45,11 @@ class TextRCNN(BaseModel):
         pooled = tf.nn.max_pool(h, ksize=[1, self.input_len, 1, 1], strides=[1, 1, 1, 1], padding='VALID', name="pool")
         self.h_pool = tf.reshape(pooled, [-1, self.num_filter])
 
+        # dropout
+        with tf.name_scope("dropout"):
+            self.h_drop = tf.nn.dropout(self.h_pool, keep_prob=self.dropout_keep_prob)
+
         # FC
         with tf.name_scope("full"):
-            logits = tf.matmul(self.h_pool, self.W_project) + self.b_project  # [None, num_class]
+            logits = tf.matmul(self.h_drop, self.W_project) + self.b_project  # [None, num_class]
         return logits

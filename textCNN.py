@@ -6,14 +6,12 @@ from base_model import BaseModel
 
 
 class TextCNN(BaseModel):
-    def __init__(self, voca_size, input_len, num_class, embed_size=100, filter_sizes=[1,2,3,4,5], num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
-        self.voca_size = voca_size
-        self.embed_size = embed_size
+    def __init__(self, voca_size, input_len, num_class, embed_size=100, filter_sizes=[1,2,3,4,5], num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, l2_lambda =0.0001, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
         self.filter_sizes = filter_sizes
         self.num_filter = num_filter
         self.num_filters = self.num_filter * len(filter_sizes)
 
-        super(TextCNN, self).__init__(input_len=input_len, num_class=num_class, learning_rate=learning_rate, decay_step=decay_step, decay_rate=decay_rate, batch_size=batch_size, pos_weight=pos_weight, clip_gradient=clip_gradient, initializer=initializer, multi_label=multi_label)
+        super(TextCNN, self).__init__(voca_size=voca_size, input_len=input_len, num_class=num_class, embed_size=embed_size, learning_rate=learning_rate, decay_step=decay_step, decay_rate=decay_rate, batch_size=batch_size, pos_weight=pos_weight, clip_gradient=clip_gradient, initializer=initializer, multi_label=multi_label)
 
     def init_weights(self):
         """define all weights here"""
@@ -33,7 +31,6 @@ class TextCNN(BaseModel):
 
     def core(self):
         # emebedding
-        self.embedded_sentence = tf.nn.embedding_lookup(self.embedding, self.input) # [None, input_len, embed_size]
         self.expanded = tf.expand_dims(self.embedded_sentence, -1) #input requirement of 2d-conv
 
         # convolutional
