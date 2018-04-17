@@ -6,12 +6,12 @@ from base_model import BaseModel
 
 
 class TextCNN(BaseModel):
-    def __init__(self, voca_size, input_len, num_class, embed_size=100, filter_sizes=[1,2,3,4,5], num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, l2_lambda =0.0001, pos_weight=1, clip_gradient=5.0, initializer=tf.random_normal_initializer(stddev=0.1), multi_label=False):
+    def __init__(self, voca_size, input_len, num_class, embed_size=100, filter_sizes=[1,2,3,4,5], num_filter=256, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, batch_size=128, l2_ld=0.0001, pos_weight=1, clip_gradient=5.0, multi_label=False, initial_size=0.1):
         self.filter_sizes = filter_sizes
         self.num_filter = num_filter
         self.num_filters = self.num_filter * len(filter_sizes)
 
-        super(TextCNN, self).__init__(voca_size=voca_size, input_len=input_len, num_class=num_class, embed_size=embed_size, learning_rate=learning_rate, decay_step=decay_step, decay_rate=decay_rate, batch_size=batch_size, pos_weight=pos_weight, clip_gradient=clip_gradient, initializer=initializer, multi_label=multi_label)
+        super(TextCNN, self).__init__(voca_size, input_len, num_class, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label, initial_size)
 
     def init_weights(self):
         """define all weights here"""
@@ -51,5 +51,4 @@ class TextCNN(BaseModel):
 
         # softmax
         with tf.name_scope("softmax"):
-            logits = tf.matmul(self.h_drop, self.W_project) + self.b_project
-        return logits
+            self.logits = tf.matmul(self.h_drop, self.W_project) + self.b_project
