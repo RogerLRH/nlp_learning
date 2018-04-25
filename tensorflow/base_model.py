@@ -53,7 +53,7 @@ class BaseModel(object):
     def build_placeholder(self):
         self.input = tf.placeholder(tf.int32, [None, self.input_len], name="input")
         if self.multi_label:
-            self.label = tf.placeholder(tf.int32, [None, self.num_class], name="label")
+            self.label = tf.placeholder(tf.float32, [None, self.num_class], name="label")
         else:
             self.label = tf.placeholder(tf.int32, [None], name="label")
         self.dropout_keep_prob = tf.placeholder(tf.float32, name="dropout_keep_prob")
@@ -75,8 +75,9 @@ class BaseModel(object):
                 losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
                 labels=self.label, logits=self.logits)
             else:
+                target = tf.to_float(tf.reshape(self.label, [-1, 1]))
                 losses = tf.nn.weighted_cross_entropy_with_logits(
-                targets=self.label, logits=self.logits, pos_weight=self.pos_weight)
+                targets=target, logits=self.logits, pos_weight=self.pos_weight)
             loss = tf.reduce_mean(losses)
             l2_losses = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if "bias" not in v.name and "embedding" not in v.name]) * self.l2_lambda
             loss += l2_losses
@@ -86,7 +87,6 @@ class BaseModel(object):
         with tf.name_scope("loss"):
             losses = tf.nn.sigmoid_cross_entropy_with_logits(
             labels=self.label, logits=self.logits)
-            losses = tf.reduce_sum(losses, axis=1)
             loss = tf.reduce_mean(losses)
             l2_losses = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if "bias" not in v.name and "embedding" not in v.name]) * self.l2_lambda
             loss += l2_losses
@@ -156,15 +156,15 @@ class BaseModel(object):
         testset = TextIndexLoader((inputs, labels), self.batch_size, fix_size=self.input_len, forward=forward)
         with tf.Session() as sess:
             self.saver.restore(sess, checkpoint)
-            losses = 0
+            losses, acc = 0, 0
             probs = []
             for j, (inputs, labels) in enumerate(testset):
                 feed_dict = {self.input: inputs, self.label: labels, self.dropout_keep_prob: 1}
                 loss, prob = sess.run([self.loss, self.prob], feed_dict=feed_dict)
                 losses += loss * len(inputs)
                 acc += self.calcul_accuracy(prob, labels) * len(inputs)
-            losses = losses / len(validset)
-            acc = acc / len(validset)
+            losses = losses / len(testset)
+            acc = acc / len(testset)
             print("Test: Loss %.6f, Accuracy %.6f" % (losses, acc))
 
     def predict(self, predict_file, checkpoint, forward=False):
@@ -173,7 +173,7 @@ class BaseModel(object):
         with tf.Session() as sess:
             self.saver.restore(sess, checkpoint)
             probs = []
-            for j, inputs in enumerate(validset):
+            for j, inputs in enumerate(predictset):
                 feed_dict = {self.input: inputs, self.dropout_keep_prob: 1}
                 prob = sess.run(self.prob, feed_dict=feed_dict)
                 probs.append(prob)

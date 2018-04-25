@@ -77,7 +77,7 @@ class TextRNNAttention(TextRNN):
 
 
 class TextRNNAttentionWithSentence(TextRNN):
-    def build_inputs(self):
+    def build_placeholder(self):
         self.input = tf.placeholder(tf.int32, [None, self.input_len[0], self.input_len[1]], name="input")
         if self.multi_label:
             self.label = tf.placeholder(tf.float32, [None, self.num_class], name="label")

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+
+from textCNN import conv1_layer
 
 
 class AttentionLayer(nn.Module):
@@ -57,13 +57,12 @@ class TextRNN(nn.Module):
         rnn_output, _ = self.gru(embed, hidden)
         rnn_output = rnn_output.mean(dim=1)
 
-        logits = F.softmax(self.fc(rnn_output), dim=1)
+        logits = self.fc(rnn_output)
         return logits
 
 
-# TODO
 class TextRCNN(nn.Module):
-    def __init__(self, voca_size, num_class, hidden_size=100, embed_size=100, num_filter=256, use_cuda=True):
+    def __init__(self, voca_size, input_len, num_class, hidden_size=100, embed_size=100, num_filter=256, use_cuda=True):
         super(TextRCNN, self).__init__()
         self.hidden_size = hidden_size
         self.embed_size = embed_size
@@ -72,7 +71,8 @@ class TextRCNN(nn.Module):
         self.embedding = nn.Embedding(voca_size, embed_size)
         self.dropout = nn.Dropout(0.5)
         self.gru = nn.GRU(embed_size, hidden_size, batch_first=True, num_layers=1, bidirectional=True)
-        self.fc = nn.Linear(hidden_size*2, num_class)
+        self.conv1 = conv1_layer(input_len, hidden_size*2, num_filter, 1)
+        self.fc = nn.Linear(num_filter, num_class)
 
         nn.init.xavier_uniform(self.embedding.weight)
         nn.init.normal(self.fc.weight)
@@ -84,9 +84,10 @@ class TextRCNN(nn.Module):
 
         hidden = init_bilstm_hidden(input_len[0], self.hidden_size, self.use_cuda)
         rnn_output, _ = self.gru(embed, hidden)
-        rnn_output = rnn_output.mean(dim=1)
+        rnn_output = rnn_output.transpose(1, 2)
+        conv_output = self.conv1(rnn_output).view([input_len[0], -1])
 
-        logits = F.softmax(self.fc(rnn_output), dim=1)
+        logits = self.fc(conv_output)
         return logits
 
 
@@ -115,7 +116,7 @@ class TextRNNAttention(nn.Module):
         rnn_output, _ = self.gru(embed, hidden)
         attn_output = self.attn(rnn_output)
 
-        logits = F.softmax(self.fc(attn_output), dim=1)
+        logits = self.fc(attn_output)
         return logits
 
 
@@ -153,5 +154,5 @@ class TextRNNAttentionWithSentence(nn.Module):
         sen_rnn_output, _ = self.sen_gru(sen_input, hidden)
         sen_attn_output = self.sen_attn(sen_rnn_output)
 
-        logits = F.softmax(self.fc(sen_attn_output), dim=1)
+        logits = self.fc(sen_attn_output)
         return logits

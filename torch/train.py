@@ -3,7 +3,7 @@ import pickle
 
 from base_model import Treator
 from textCNN import TextCNN
-from textRNN import TextRNN, TextRNNAttention, TextRNNAttentionWithSentence
+from textRNN import TextRNN, TextRCNN, TextRNNAttention, TextRNNAttentionWithSentence
 
 
 parser = argparse.ArgumentParser()
@@ -64,7 +64,9 @@ def run():
     # model = TextCNN(voca_size, data_size, num_class, filter_sizes, num_filter, embed_size, use_cuda)
     # model = TextRNN(voca_size, num_class, hidden_size, embed_size, use_cuda)
     # model = TextRNNAttention(voca_size, num_class, hidden_size, embed_size, attn_size, use_cuda)
-    model = TextRNNAttentionWithSentence(voca_size, num_class, hidden_size, embed_size, attn_size, use_cuda)
+    # model = TextRNNAttentionWithSentence(voca_size, num_class, hidden_size, embed_size, attn_size, use_cuda)
+    model = TextRCNN(voca_size, data_size, num_class, hidden_size, embed_size, num_filter, use_cuda)
+
     clf = Treator(model, multi_label, use_cuda)
 
     clf.train(train_file, save_path, valid_file, train_cp, batch_size, learning_rate, epochs, l2_ld, data_size)

@@ -5,4 +5,5 @@ checkpoints
 *.csv
 .git
 .DS_Store
+*.ipynb*
 __pycache__

@@ -32,9 +32,9 @@ args = parser.parse_args()
 
 
 def run():
-    input_size = [int(s) for s in args.input_size.strip().split(",")]
-    if len(input_size) == 1:
-        input_size = input_size[0]
+    input_len = [int(s) for s in args.input_size.strip().split(",")]
+    if len(input_len) == 1:
+        input_len = input_len[0]
     num_class = args.num_class
     train_file = args.train_file
     valid_file = args.valid_file
@@ -55,7 +55,11 @@ def run():
     multi_label = args.multi_label
 
     _, _, voca_size = pickle.load(open(train_file, "rb"))
-    clf = TextRNNAttentionWithSentence(voca_size, input_size, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
+    clf = TextCNN(voca_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
+    # clf = TextRNN(voca_size, input_len, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
+    # clf = TextRNNAttention(voca_size, input_len, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
+    # clf = TextRNNAttentionWithSentence(voca_size, input_len, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
+    # clf = TextRCNN(voca_size, input_len, num_class, hidden_size, embed_size, num_filter, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
     clf.train(train_file, valid_file, epochs=epochs, checkpoint=train_cp, save_path=save_path)
 
 

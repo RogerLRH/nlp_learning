@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
+
+
+def conv1_layer(input_len, embed_size, num_filter, filter_size):
+    maxpool_kernel_size = input_len - filter_size + 1
+
+    conv1 = nn.Conv1d(embed_size, num_filter, filter_size)
+    nn.init.xavier_normal(conv1.weight)
+
+    conv_struct = nn.Sequential(
+        conv1,
+        nn.ReLU(),
+        nn.MaxPool1d(kernel_size=maxpool_kernel_size))
+    return conv_struct
 
 
 class TextCNN(nn.Module):
@@ -21,18 +31,8 @@ class TextCNN(nn.Module):
 
         conv_blocks = []
         for filter_size in filter_sizes:
-            maxpool_kernel_size = input_len - filter_size + 1
-            conv1 = nn.Conv1d(embed_size, num_filter, filter_size)
-            nn.init.xavier_normal(conv1.weight)
-
-            component = nn.Sequential(
-                conv1,
-                nn.ReLU(),
-                nn.MaxPool1d(kernel_size=maxpool_kernel_size))
-
-            if use_cuda:
-                component = component.cuda()
-            conv_blocks.append(component)
+            conv_struct = conv1_layer(input_len, embed_size, num_filter, filter_size)
+            conv_blocks.append(conv_struct)
 
         self.conv_blocks = nn.ModuleList(conv_blocks)
 
@@ -49,5 +49,5 @@ class TextCNN(nn.Module):
         output = torch.cat(conv_output, 2)
         output = output.view(output.size(0), -1)
 
-        logits = F.softmax(self.fc(output), dim=1)
+        logits = self.fc(output)
         return logits
