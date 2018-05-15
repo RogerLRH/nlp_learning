@@ -33,8 +33,8 @@ def calcul_loss(multi, num_class, logits, labels, l2_ld=0.0001, pos_weight=1):
 
 def calcul_accuracy(prob, labels, multi_label, num_class):
     if multi_label or num_class == 2:
-        prob[prob >= 0.5] = 1
-        prob[prob < 0.5] = 0
+        pred = np.zeros_like(prob)
+        pred[prob >= 0.5] = 1
     else:
         prob = np.argmax(prob, axis=1)
     acu = np.mean(prob == labels)
@@ -42,7 +42,7 @@ def calcul_accuracy(prob, labels, multi_label, num_class):
 
 
 def make_optimizer(loss, learning_rate, decay_step, decay_rate):
-    global_step = tf.Variable(0)
+    global_step = tf.Variable(0, trainable=False)
     lr = tf.train.exponential_decay(learning_rate, global_step, decay_step, decay_rate)
     return tf.train.AdamOptimizer(learning_rate=lr).minimize(loss, global_step=global_step)
 
@@ -53,8 +53,8 @@ def conv_layer(inputs, input_len, num_filter, kernel_size, initializer):
     return pooled
 
 
-def base_model_fn(features, labels, mode, core, voca_size, num_class, embed_size=100, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, l2_ld=1e-4, pos_weight=1.0, multi_label=False):
-    embedding = tf.get_variable("embedding", shape=[voca_size, embed_size], initializer=tf.random_uniform_initializer(maxval=np.sqrt(3)))
+def base_model_fn(features, labels, mode, core, dict_size, num_class, embed_size=100, learning_rate=1e-3, decay_step=1000, decay_rate=0.8, l2_ld=1e-4, pos_weight=1.0, multi_label=False):
+    embedding = tf.get_variable("embedding", shape=[dict_size, embed_size], initializer=tf.random_uniform_initializer(maxval=np.sqrt(3)))
     embedded_sentence = tf.nn.embedding_lookup(embedding, features["x"])
 
     logits = core(embedded_sentence, mode)

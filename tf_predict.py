@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 import argparse
 import pickle
 
-from textCNN import TextCNN
-from textRNN import TextRNN, TextRNNAttention, TextRNNAttentionWithSentence
-from textRCNN import TextRCNN
+from nlp_learning.tensorflow.text_classification.textCNN import TextCNN
+from nlp_learning.tensorflow.text_classification.textRNN import TextRNN, TextRNNAttention, TextRNNAttentionWithSentence
+from nlp_learning.tensorflow.text_classification.textRCNN import TextRCNN
 
 
 parser = argparse.ArgumentParser()
@@ -16,9 +17,6 @@ parser.add_argument('--hidden_size', action='store', default=100, type=int, help
 parser.add_argument('--embed_size', action='store', default=100, type=int, help='embedding size, 100 by default')
 parser.add_argument('--filter_sizes', action='store', default="1,2,3", type=str, help='sizes of filters, "1,2,3" by default')
 parser.add_argument('--num_filter', action='store', default=128, type=int, help='number of filters for each size, 128 by default')
-parser.add_argument('--learning_rate', action='store', default=0.001, type=float, help='learning rate, 0.001 by default')
-parser.add_argument('--decay_step', action='store', default=1000, type=int, help='number of steps to make once decay rate, 1000 by default')
-parser.add_argument('--decay_rate', action='store', default=0.8, type=float, help='decay rate for learning rate, 0.8 by default')
 parser.add_argument('--batch_size', action='store', default=64, type=int, help='batch size, 64 by default')
 parser.add_argument('--l2_lambda', action='store', default=0.0001, type=float, help='learning rate, 0.0001 by default')
 parser.add_argument('--pos_weight', action='store', default=1.0, type=float, help='weight of positive sample in sigmoid cross entropy, 1.0 by default')
@@ -29,9 +27,9 @@ args = parser.parse_args()
 
 
 def run():
-    input_size = [int(s) for s in args.input_size.strip().split(",")]
-    if len(input_size) == 1:
-        input_size = input_size[0]
+    input_len = [int(s) for s in args.input_size.strip().split(",")]
+    if len(input_len) == 1:
+        input_len = input_len[0]
     num_class = args.num_class
     predict_file = args.predict_file
     predict_cp = args.predict_cp
@@ -39,18 +37,15 @@ def run():
     embed_size = args.embed_size
     filter_sizes = [int(s) for s in args.filter_sizes.strip().split(",")]
     num_filter = args.num_filter
-    learning_rate = args.learning_rate
-    decay_step = args.decay_step
-    decay_rate = args.decay_rate
     batch_size = args.batch_size
     l2_ld = args.l2_lambda
     pos_weight = args.pos_weight
     clip_gradient = args.clip_gradient
     multi_label = args.multi_label
 
-    _, _, voca_size = pickle.load(open(predict_cp, "rb"))
-    clf = TextRNNAttentionWithSentence(voca_size, input_size, num_class, hidden_size, embed_size, learning_rate, decay_step, decay_rate, batch_size, l2_ld, pos_weight, clip_gradient, multi_label)
-    clf.predict(predict_file, predict_cp, forward=False)
+    _, _, dict_size = pickle.load(open(predict_cp, "rb"))
+    clf = TextRCNN(dict_size, input_len, num_class, hidden_size, embed_size, num_filter, l2_ld, pos_weight, multi_label, initial_size=.1)
+    clf.predict(predict_file, predict_cp, batch_size)
 
 
 if __name__ == "__main__":

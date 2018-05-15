@@ -2,13 +2,13 @@
 #TextCNN: 1. embeddding, 2.convolutional, 3.max-pooling, 4.softmax.
 import tensorflow as tf
 
-from base_model import conv_layer, base_model_fn
+from nlp_learning.tensorflow.text_classification.base_model import conv_layer, base_model_fn
 
 
 class TextCNN(tf.estimator.Estimator):
     def __init__(
         self,
-        voca_size,
+        dict_size,
         input_len,
         num_class,
         embed_size,
@@ -32,7 +32,7 @@ class TextCNN(tf.estimator.Estimator):
                 labels,
                 mode,
                 core,
-                voca_size,
+                dict_size,
                 num_class,
                 embed_size,
                 learning_rate,
@@ -55,11 +55,9 @@ class CoreTextCNN(object):
         self.initializer = tf.random_normal_initializer(stddev=initial_size)
 
     def __call__(self, embedded_sentence, mode):
-        expanded = tf.expand_dims(embedded_sentence, -1)
-
         pool_outs = []
         for size in self.filter_sizes:
-            pooled = conv_layer(expanded, self.input_len, self.num_filter, size, self.initializer)
+            pooled = conv_layer(embedded_sentence, self.input_len, self.num_filter, size, self.initializer)
             pool_outs.append(pooled)
         h_pool = tf.concat(pool_outs, 3) # [None, 1, 1, num_filters].
         h_pool_flat = tf.reshape(h_pool, [-1, self.num_filter * len(self.filter_sizes)])
