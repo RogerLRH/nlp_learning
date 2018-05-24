@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
-import pickle
-
+import numpy as np
 import torch
 import torch.nn as nn
-
-from nlp_learning.data_loader import TorchTextDataLoader
 
 
 def init_const(*size, **kwargs):
     value = kwargs.get("value", 0)
-    dtype = kwargs.get("value", None)
+    dtype = kwargs.get("dtype", None)
     use_cuda = kwargs.get("use_cuda", True)
     const = value * torch.ones(*size, dtype=dtype)
     if use_cuda:
@@ -30,15 +27,6 @@ def conv1_layer(input_len, embed_size, num_filter, filter_size):
     return conv_struct
 
 
-def build_data(filepath, input_size, batch_size, forward, with_label=True):
-    labels = None
-    if with_label:
-        inputs, labels, _ = pickle.load(open(filepath, "rb"))
-    else:
-        inputs, _ = pickle.load(open(filepath, "rb"))
-    return TorchTextDataLoader(inputs, labels=labels, input_size=input_size, batch_size=batch_size, shuffle=True, forward=forward)
-
-
 def get_probability(logits, multi_label=False):
     if multi_label:
         prob = logits.data.sigmoid()
@@ -57,3 +45,23 @@ def get_predict(logits, multi_label=False):
 
 def calcul_accuracy(predicted, labels):
     return (predicted == labels.data).float().sum() / labels.data.numel()
+
+
+# TODO：make it runable
+class SampledSoftmaxLossWithLogits(nn.Module):
+    def __init__(self, num_sampled):
+        super(SampledSoftmaxLossWithLogits, self).__init__()
+        self._num_sampled = num_sampled
+        self._loss = nn.CrossEntropyLoss(ignore_index=0)
+
+    def forward(self, logits, labels):
+        batch = logits.shape[0]
+        num_class = logits.shape[1]
+        logits = logits.data
+        sampled_logits = []
+        for i in range(batch):
+            sampled = logits[i, np.random.choice(num_class, self._num_sampled, replace=False)]
+            sampled = torch.cat((logits[i, labels[i]].view(1), sampled))
+            sampled_logits.append(sampled.view(1, -1))
+        sampled_logits = torch.cat(sampled_logits, dim=0)
+        return self._loss(sampled_logits, torch.zeros_like(labels, dtype=torch.long))

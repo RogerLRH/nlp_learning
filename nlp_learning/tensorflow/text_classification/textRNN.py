@@ -1,31 +1,10 @@
 # -*- coding: utf-8 -*-
 #TextRNN: 1. embeddding, 2.Bi-LSTM, 3.concat output, 4.FC, 5.softmax
 import tensorflow as tf
-from tensorflow.contrib import rnn
 
 from nlp_learning.tensorflow.text_classification.base_model import BaseModel
-
-
-def bi_gru(inputs, hidden_size, dropout_keep_prob):
-    lstm_fw_cell = rnn.GRUCell(hidden_size) #forward direction
-    lstm_bw_cell = rnn.GRUCell(hidden_size) #backward direction
-    if dropout_keep_prob is not None:
-        lstm_fw_cell = rnn.DropoutWrapper(lstm_fw_cell, output_keep_prob=dropout_keep_prob)
-        lstm_bw_cell = rnn.DropoutWrapper(lstm_bw_cell, output_keep_prob=dropout_keep_prob)
-    outputs, _ = tf.nn.bidirectional_dynamic_rnn(lstm_fw_cell, lstm_bw_cell, inputs, dtype=tf.float32)
-    return outputs
-
-
-def attention_layer(inputs, input_len, hidden_size, initializer):
-    W_attention = tf.get_variable("W_attention", shape=[hidden_size*2, hidden_size*2], initializer=initializer)
-    bias_atteniton = tf.get_variable("bias_atteniton", shape=[hidden_size*2])
-    U_attention = tf.get_variable("attention", shape=[hidden_size*2, 1], initializer=initializer)
-
-    input_attention = tf.reshape(inputs, [-1, hidden_size*2])
-    hidden_rep = tf.nn.tanh(tf.matmul(input_attention, W_attention) + bias_atteniton)
-    attention_logits = tf.reshape(tf.matmul(hidden_rep, U_attention), [-1, input_len])
-    attention_weight = tf.expand_dims(tf.nn.softmax(attention_logits), axis=2)
-    return tf.reduce_sum(tf.multiply(inputs, attention_weight), axis=1)
+from nlp_learning.tensorflow.function import bi_gru
+from nlp_learning.tensorflow.function import attention_layer
 
 
 class TextRNN(BaseModel):
@@ -47,7 +26,8 @@ class TextRNN(BaseModel):
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._hidden_size*2, self._num_class], initializer=self._initializer)
             bias_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(h_drop, W_project) + bias_project
+            logits = tf.matmul(h_drop, W_project) + bias_project
+        return logits
 
 
 class TextRNNAttention(TextRNN):
@@ -65,7 +45,8 @@ class TextRNNAttention(TextRNN):
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._hidden_size*2, self._num_class], initializer=self._initializer)
             bias_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(h_drop, W_project) + bias_project
+            logits = tf.matmul(h_drop, W_project) + bias_project
+        return logits
 
 
 class TextRNNAttentionWithSentence(TextRNN):
@@ -102,4 +83,5 @@ class TextRNNAttentionWithSentence(TextRNN):
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._hidden_size*2, self._num_class], initializer=self._initializer)
             bias_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(sen_output, W_project) + bias_project
+            logits = tf.matmul(sen_output, W_project) + bias_project
+        return logits

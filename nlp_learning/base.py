@@ -32,19 +32,7 @@ def load_lines2list(filename):
             res.append(line.strip())
     return res
 
-
 def remove_stopword(words, stopwords):
-    """remove stopwords in words.
-
-    Parameters
-    ----------
-    words : string list
-    stopwords : list or set
-
-    Returns
-    -------
-    string list
-        words without stopwords
-    """
+    # stopwords can be list or set
     stopwords = set(stopwords)
     return [w for w in words if w not in stopwords]

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import pickle
-
 import torch
-from torch.utils.data import Dataset
 import numpy as np
 
 
@@ -61,7 +58,7 @@ def pad_general(item, size, forward):
         item = [pad_array(i, size, forward=forward) for i in item]
     else:
         item = [pad_list(i, size, forward=forward) for i in item]
-    return item
+    return np.array(item, dtype=int)
 
 
 def get_max_size(inputs):
@@ -78,7 +75,7 @@ def get_max_size(inputs):
     return m
 
 
-class TextDataLoader(object):
+class ClassLoader(object):
     """
     An endless iteration which gives batches of indexed text datas.
 
@@ -122,8 +119,7 @@ class TextDataLoader(object):
             size = get_max_size(inputs)
         else:
             size = self._input_size
-        inputs = self._padding(inputs, size)
-        return inputs
+        return self._padding(inputs, size)
 
     def _label_treator(self, idx):
         return np.array([self._labels[i] for i in idx], dtype=int)
@@ -142,7 +138,7 @@ class TextDataLoader(object):
                 yield inputs
 
 
-class TorchTextDataLoader(TextDataLoader):
+class TorchClassLoader(ClassLoader):
     def _padding(self, inputs, size):
         inputs = pad_general(inputs, size, self._forward)
         return torch.LongTensor(inputs)
@@ -152,51 +148,49 @@ class TorchTextDataLoader(TextDataLoader):
         return torch.LongTensor(labels)
 
 
-class TrainText(Dataset):
+class TranslationLoader(ClassLoader):
     """
-    torch dataset for train text.
+    An endless iteration which gives batches of indexed text datas.
 
     Parameters
     ----------
-    text_path : string
-        The path of train file, which should be pickle file with tuple (inputs, labels, dict_size).
-    size : int or list
-        input size of each sample
+    inputs : list
+        Each element should be same type(index list), the length is free.
+    labels : list
+        Each element should be same type(int for single label or int list for multilabels), if list, the length should be same. Can be None for predict case. Default: None.
+    input_size : int
+        If given, each sample size is the same. If not, sample size is depend on the max size of batch's samples, which is variable. Default: None.
+    label_size : int
+        If given, each sample size is the same. If not, sample size is depend on the max size of batch's samples, which is variable. Default: None.
+    batch_size : int
+        Default: 128.
+    shuffle : bool
+        If shuffle the data at every epoch. Default: True.
     forward : bool
-        To get front part if True. Default: False.
+        When input_size is given, to get front part for padding if True. Default: False.
     """
-    def __init__(self, text_path, size=500, forward=False):
-        self._size = size
-        self._forward = forward
-        self._get_data(text_path)
+    def __init__(self, inputs, labels=None, input_size=None, label_size=None, batch_size=128, shuffle=True):
+        super(TranslationLoader, self).__init__(inputs, labels=labels, input_size=input_size, batch_size=batch_size, shuffle=shuffle, forward=True)
+        self._label_size = label_size
 
-    def _get_data(self, text_path):
-        self._texts, self._labels, _ = pickle.load(open(text_path, "rb"))
+    def _input_treator(self, idx):
+        inputs = [self._inputs[i] for i in idx]
+        if self._input_size is None:
+            size = get_max_size(inputs)
+        else:
+            size = self._input_size
+        return self._padding(inputs, size)
 
-    def __getitem__(self, index):
-        text = pad_general(self._texts[index], self._size, self._forward)
-        return text, self._labels[index]
+    def _label_treator(self, idx):
+        labels = [self._labels[i] for i in idx]
+        if self._label_size is None:
+            size = get_max_size(labels)
+        else:
+            size = self._label_size
+        return self._padding(labels, size)
 
-    def __len__(self):
-        return len(self._texts)
 
-
-class PredictText(TrainText):
-    """
-    torch dataset for predict text.
-
-    Parameters
-    ----------
-    text_path : string
-        The path of train file, which should be pickle file with tuple (inputs, dict_size).
-    size : int or list
-        input size of each sample
-    forward : bool
-        To get front part if True. Default: False.
-    """
-    def _get_data(self, text_path):
-        self._texts, _ = pickle.load(open(text_path, "rb"))
-
-    def __getitem__(self, index):
-        text = pad_general(self._texts[index], self._size, self._forward)
-        return text
+class TorchTranslationLoader(TranslationLoader):
+    def _padding(self, inputs, size):
+        inputs = pad_general(inputs, size, self._forward)
+        return torch.LongTensor(inputs)

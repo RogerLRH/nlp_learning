@@ -4,9 +4,13 @@ import os
 import tensorflow as tf
 import numpy as np
 
+from nlp_learning.tensorflow.function import calcul_loss
+from nlp_learning.tensorflow.function import calcul_prob
+from nlp_learning.tensorflow.function import get_predict
 from nlp_learning.tensorflow.function import calcul_accuracy
 from nlp_learning.tensorflow.function import build_dataset
 from nlp_learning.tensorflow.function import optimizer
+
 
 class BaseModel(object):
     """
@@ -36,20 +40,19 @@ class BaseModel(object):
 
         self._dict_size = dict_size
         self._input_len = input_len
-        self._num_class = 1 if num_class == 2 and not multi_label else num_class
+        self._num_class = num_class
         self._embed_size = embed_size
-        self._l2_lambda = l2_ld
-        self._pos_weight = pos_weight
         self._multi_label = multi_label
 
         self._initializer = tf.random_normal_initializer(stddev=initial_size)
-        self._global_step = tf.Variable(0, trainable=False, name="global_step")
 
         self._build_placeholder()
         self._embed()
-        self.core()
-        self._loss_general()
-        self._get_prob()
+        self._logits = self.core()
+
+        self._loss = calcul_loss(multi_label, num_class, self._logits, self._label, l2_ld=l2_ld, pos_weight=pos_weight)
+
+        self._prob = calcul_prob(self._logits, multi_label)
 
         self._saver = tf.train.Saver()
         self._saver2 = tf.train.Saver([self._embedding])
@@ -67,48 +70,8 @@ class BaseModel(object):
         self._embedded_sentence = tf.nn.embedding_lookup(self._embedding, self._input) # [None, input_len, embed_size]
 
     def core(self):
-        # main process, should define self._logits
-        self._logits = self._label
-
-    def _loss_general(self):
-        if self._multi_label:
-            print("going to use multi label loss.")
-            self._loss = self._loss_multi()
-        else:
-            print("going to use single label loss.")
-            self._loss = self._loss_single()
-        l2_losses = tf.add_n([tf.nn.l2_loss(v) for v in tf.trainable_variables() if "bias" not in v.name and "embedding" not in v.name]) * self._l2_lambda
-        self._loss += l2_losses
-
-    def _loss_single(self):
-        with tf.name_scope("loss"):
-            if self._num_class > 1:
-                losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self._label, logits=self._logits)
-            else:
-                target = tf.to_float(tf.reshape(self._label, (-1, 1)))
-                losses = tf.nn.weighted_cross_entropy_with_logits(targets=target, logits=self._logits, pos_weight=self._pos_weight)
-            loss = tf.reduce_mean(losses)
-        return loss
-
-    def _loss_multi(self):
-        with tf.name_scope("loss"):
-            losses = tf.nn.sigmoid_cross_entropy_with_logits(labels=self._label, logits=self._logits)
-            loss = tf.reduce_mean(losses)
-        return loss
-
-    def _get_prob(self):
-        if self._multi_label or self._num_class == 1:
-            self._prob = tf.nn.sigmoid(self._logits)
-        else:
-            self._prob = tf.nn.softmax(self._logits)
-
-    def _get_predict(self, prob):
-        if self._multi_label or self._num_class == 1:
-            predict = np.zeros_like(prob)
-            predict[prob >= 0.5] = 1
-        else:
-            predict = np.argmax(prob, axis=1)
-        return predict
+        # main process, should return logits
+        return self._label
 
     def _batch_process(self, sess, data, opt=None, mode="TRAIN"):
         if mode not in ("TRAIN", "TEST", "VALIDATE"):
@@ -118,7 +81,7 @@ class BaseModel(object):
             self._label: data[1],
             self._dropout_keep_prob: 1}
         loss, prob = sess.run([self._loss, self._prob], feed_dict=feed_dict)
-        predict = self._get_predict(prob)
+        predict = get_predict(prob, self._multi_label)
 
         if mode == "PREDICT":
             return prob, predict
@@ -148,7 +111,7 @@ class BaseModel(object):
         trainset = build_dataset(train_file, self._input_len, batch_size, forward)
         if valid_file:
             validset = build_dataset(valid_file, self._input_len, batch_size, forward)
-        opt = optimizer(self._loss, learning_rate, self._global_step, decay_rate, decay_step, clip_gradient)
+        opt = optimizer(self._loss, learning_rate, decay_rate, decay_step, clip_gradient)
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             if checkpoint:

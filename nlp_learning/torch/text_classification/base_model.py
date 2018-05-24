@@ -1,12 +1,22 @@
 # -*- coding: utf-8 -*-
 import os
+import pickle
 
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+from nlp_learning.data_loader import TorchClassLoader
 from nlp_learning.torch.function import get_predict, get_probability, calcul_accuracy
-from nlp_learning.torch.function import build_data
+
+
+def build_data(filepath, input_size, batch_size, forward, with_label=True):
+    labels = None
+    if with_label:
+        inputs, labels, _ = pickle.load(open(filepath, "rb"))
+    else:
+        inputs, _ = pickle.load(open(filepath, "rb"))
+    return TorchClassLoader(inputs, labels=labels, input_size=input_size, batch_size=batch_size, shuffle=True, forward=forward)
 
 
 class Treator(object):
@@ -69,7 +79,6 @@ class Treator(object):
         inputs, labels = Variable(data[0]), Variable(data[1])
         if torch.cuda.is_available() and self._use_cuda:
             inputs, labels = inputs.cuda(), labels.cuda()
-
         logits = self._model(inputs)
         predicted = get_predict(logits, multi_label=self._multi_label)
 

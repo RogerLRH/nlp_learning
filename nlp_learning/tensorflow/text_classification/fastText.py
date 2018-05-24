@@ -24,4 +24,5 @@ class FastText(BaseModel):
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._embed_size, self._num_class], initializer=self._initializer)
             b_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(h, W_project) + b_project
+            logits = tf.matmul(h, W_project) + b_project
+        return logits

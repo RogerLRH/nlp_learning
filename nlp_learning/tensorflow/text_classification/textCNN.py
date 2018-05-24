@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 import tensorflow as tf
 
+from nlp_learning.tensorflow.function import conv1_layer
 from nlp_learning.tensorflow.text_classification.base_model import BaseModel
-
-
-def conv_layer(inputs, input_len, num_filter, kernel_size, initializer, name=None):
-    conv_output = tf.layers.conv1d(inputs, num_filter, kernel_size, name=name, activation=tf.nn.relu, kernel_initializer=initializer)
-    pooled = tf.layers.max_pooling1d(conv_output, input_len-kernel_size+1, 1, name=name+"_pool")
-    return pooled
 
 
 class TextCNN(BaseModel):
@@ -23,7 +18,7 @@ class TextCNN(BaseModel):
         with tf.name_scope("conv"):
             pool_outs = []
             for i, size in enumerate(self._filter_sizes):
-                pooled = conv_layer(self._embedded_sentence, self._input_len, self._num_filter, size, self._initializer, name="conv_%s"%i)
+                pooled = conv1_layer(self._embedded_sentence, self._input_len, self._num_filter, size, self._initializer, name="conv_%s"%i)
                 pool_outs.append(pooled)
             h_pool = tf.concat(pool_outs, 2) # [None, 1, num_filters].
             h_pool_flat = tf.reshape(h_pool, [-1, self._num_filters])
@@ -36,4 +31,5 @@ class TextCNN(BaseModel):
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._num_filters, self._num_class], initializer=self._initializer)
             b_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(h_drop, W_project) + b_project
+            logits = tf.matmul(h_drop, W_project) + b_project
+        return logits

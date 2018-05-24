@@ -2,8 +2,8 @@
 import tensorflow as tf
 
 from nlp_learning.tensorflow.text_classification.base_model import BaseModel
-from nlp_learning.tensorflow.text_classification.textCNN import conv_layer
-from nlp_learning.tensorflow.text_classification.textRNN import bi_gru
+from nlp_learning.tensorflow.function import conv1_layer
+from nlp_learning.tensorflow.function import bi_gru
 
 
 class TextRCNN(BaseModel):
@@ -22,11 +22,12 @@ class TextRCNN(BaseModel):
 
         # convolutional
         with tf.name_scope("conv"):
-            pooled = conv_layer(output_rnn, self._input_len, self._num_filter, 1, self._initializer, name="conv")
+            pooled = conv1_layer(output_rnn, self._input_len, self._num_filter, 1, self._initializer, name="conv")
             h_drop = tf.reshape(pooled, [-1, self._num_filter])
 
         # FC
         with tf.name_scope("full"):
             W_project = tf.get_variable("W_project", shape=[self._num_filter, self._num_class], initializer=self._initializer)
             b_project = tf.get_variable("bias_project", shape=[self._num_class])
-            self._logits = tf.matmul(h_drop, W_project) + b_project
+            logits = tf.matmul(h_drop, W_project) + b_project
+        return logits

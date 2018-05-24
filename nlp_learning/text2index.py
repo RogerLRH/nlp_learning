@@ -47,12 +47,13 @@ class Dictionary(object):
         if dictfile:
             self._dict_w2i = load_dict(dictfile)
         self._dict_i2w = get_reverse_dict(self._dict_w2i)
+        self._reset_min_index()
 
     def build_dict(self, texts):
         for text in texts:
-            self.add_dict_with_text(text)
+            self.add2dict_with_text(text)
 
-    def add_dict_with_text(self, text):
+    def add2dict_with_text(self, text):
         for word in text:
             if word in self._dict_w2i:
                 continue
@@ -65,11 +66,30 @@ class Dictionary(object):
         while self._min_index in self._dict_i2w:
             self._min_index += 1
 
-    def text2index(self, text):
-        return [self._dict_w2i.get(word, TOKEN.UNK) for word in text]
+    def text2index(self, text, with_end=False):
+        # turn wordlist to indexlist
+        index = [self._dict_w2i.get(word, TOKEN.UNK) for word in text]
+        if with_end:
+            index.append(TOKEN.END)
+        return index
 
-    def texts2index(self, texts):
-        return [self.text2index(text) for text in texts]
+    def texts2index(self, texts, with_end=False):
+        return [self.text2index(text, with_end=with_end) for text in texts]
 
     def save(self, save_path):
         save_dict(self._dict_w2i, save_path)
+
+    def index2text(self, index):
+        # turn indexlist to text
+        i = 0
+        text = []
+        while i < len(index) and index[i] != TOKEN.END:
+            text.append(self._dict_i2w[index[i]])
+            i += 1
+        return " ".join(text)
+
+    def index2texts(self, index):
+        return [self.index2text(idx) for idx in index]
+
+    def get_dict_size(self):
+        return len(self._dict_w2i)

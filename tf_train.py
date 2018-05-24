@@ -7,6 +7,12 @@ from nlp_learning.tensorflow.text_classification.textCNN import TextCNN
 from nlp_learning.tensorflow.text_classification.textRNN import TextRNN, TextRNNAttention, TextRNNAttentionWithSentence
 from nlp_learning.tensorflow.text_classification.textRCNN import TextRCNN
 
+# # tf_estimator
+# import numpy as np
+# from nlp_learning.tf_estimator.text_classification.base_model import train_input_fn
+# from nlp_learning.tf_estimator.text_classification.textCNN import TextCNN
+# from nlp_learning.data_loader import pad_general
+
 
 parser = argparse.ArgumentParser()
 
@@ -69,6 +75,12 @@ def run():
     # clf = TextRCNN(dict_size, input_len, num_class, hidden_size, embed_size, num_filter, l2_ld, pos_weight, multi_label, initial_size=.1)
     clf.train(train_file, valid_file, epochs, batch_size, learning_rate, decay_step, decay_rate, clip_gradient, checkpoint=train_cp, save_path=save_path, load_embed_only=load_embed_only, save_embed_only=save_embed_only)
 
+    # # tf_estimator
+    # inputs, labels, dict_size = pickle.load(open(train_file, "rb"))
+    # inputs = pad_general(inputs, input_len, False)
+    # labels = np.array(labels, dtype=int)
+    # clf = TextCNN(dict_size, input_len, num_class, embed_size, filter_sizes, num_filter, learning_rate, decay_step, decay_rate, l2_ld, pos_weight, clip_gradient, multi_label, initial_size=0.1, model_dir=save_path, warm_start_from=train_cp)
+    # clf.train(input_fn=lambda: train_input_fn(inputs, labels, batch_size, len(inputs)), steps=1000)
 
 if __name__ == "__main__":
     run()
